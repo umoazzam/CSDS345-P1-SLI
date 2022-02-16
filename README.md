@@ -46,7 +46,7 @@ else
 
 Here are some more sample programs in this simple language that you can use to test your interpreter.  Please note that these programs cover most of the basic situations, but they are not sufficient to completely test your interpreter.  Be certain to write some of your own to fully tests your interpreter.
 
-(part1tests.htmlActions)  
+[Test Files](https://github.com/umoazzam/CSDS345-P1-SLI/tree/main/tests)
 
 ## General guidelines
 
@@ -58,7 +58,7 @@ You should use good style, indentation and proper commenting so that the code yo
 
 ## Using the Parser
 
-A parser is provided for you called simpleParser.rkt   Download simpleParser.rkt . You will also have to get the file lex.rkt   Download lex.rkt . You can use the parser in your program by including the line (require "simpleParser.rkt") at the top of your homework file. The command assumes simpleParser.rkt is in the same directory as your homework file. If it is not, you will have to include the path to the file in the load command.
+A parser is provided for you called [simpleParser.rkt](https://github.com/umoazzam/CSDS345-P1-SLI/blob/main/simpleParser.rkt). Download simpleParser.rkt. You will also have to get the file lex.rkt. Download [lex.rkt](https://github.com/umoazzam/CSDS345-P1-SLI/blob/main/lex.rkt). You can use the parser in your program by including the line (require "simpleParser.rkt") at the top of your homework file. The command assumes simpleParser.rkt is in the same directory as your homework file. If it is not, you will have to include the path to the file in the load command.
 
 If you are not using racket, you should use (load "simpleParser.rkt") at the top of your file instead of the load function, and you will need to comment some lines in the simpleParser.rkt and lex.rkt files.
 
