@@ -1,5 +1,7 @@
 # CSDS345-P1-SLI
+
 CSDS 345: P1 - Simple Language Interpreter
+Kasper Latawiec, Usman Moazzam, Eric Xie
 
 For this and all programming project's, you are to work in groups of up to three students. The names of all group members should appear at the top of the file, and every member should join the same Interpreter, Part 1 group on Canvas. All team members are expected to contribute to the project, and all students are responsible for understanding the code submitted in their name.  If you insist on working alone, you must still join a group of size one.
 
