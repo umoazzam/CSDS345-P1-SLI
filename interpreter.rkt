@@ -22,15 +22,22 @@
   (lambda (statement state)
     (cond
       ((number? statement) statement)
-      ((not (list? statement))
-            (cond
-              ((null? (lookup statement state)) (error 'error "undeclared variable"))
-              (else(lookup statement state))))
-      ((eq? '+ (operator statement)) (+ (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
-      ((eq? (operator statement) '-) (- (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((not (list? statement)) (if (null? (checkDeclaredVariables statement state))
+                              (error 'error "variable use before assigning")
+                              (checkDeclaredVariables statement state)))
+      ((eq? (operator statement) '+) (+ (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '-) (cond
+                                       ((null? (cddr statement)) (- 0 (M_value (leftOperand statement) state)))
+                                       (else(- (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))))
       ((eq? (operator statement) '*) (* (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       ((eq? (operator statement) '/) (quotient (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       ((eq? (operator statement) '%) (remainder (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '>) (> (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '>=) (>= (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '<) (< (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '<=) (<= (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '!=) (not (eq? (M_value (leftOperand statement) state) (M_value (rightOperand statement) state))))
+      ((eq? (operator statement) '==) (eq? (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       (else (error 'badop "Bad operator")))))
 
 (define M_boolean
@@ -38,7 +45,7 @@
     (cond
       ((eq? 'true condition) #t)
       ((eq? 'false condition) #f)
-      (else M_value condition state))))
+      (else (M_value condition state)))))
 
 ;; ***********************************************************
 ; States and function states
@@ -49,6 +56,10 @@
       ((eq? (function statement) 'return) (M_state-return (returnExpression statement) state))
       ((eq? (function statement) 'var) (M_state-declaration statement state))
       ((eq? (function statement) '=) (M_state-assign (leftOperand statement) (expression statement) state))
+      ((eq? (function statement) 'if)
+       (cond
+         ((eq? (length statement) 4)(M_state-ifElse (ifCondition statement)(statement1 statement) (statement2 statement) state))
+         (else (M_state-if (ifCondition statement)(statement1 statement) state))))
       (else (M_value statement state)))))
 
 (define M_state-return
@@ -69,8 +80,22 @@
       ((declared? variable (declaredVariables state)) (insert variable (M_value statement state) (remove variable state)))
       (else(error 'error "undeclared variable")))))
 
+(define M_state-if
+  (lambda (condition ifStatement state)
+    (cond
+      ((M_boolean condition state) (M_state ifStatement state))
+      (else state))))
+
+(define M_state-ifElse
+  (lambda (condition ifStatement elseStatement state)
+    (cond
+      ((M_boolean condition state) (M_state ifStatement state))
+      (else (M_state elseStatement state)))))
+    
+
 ;; ***********************************************************
 
+; checks if variable is already declared
 (define declared?
   (lambda (var variables)
     (cond
@@ -78,13 +103,15 @@
       ((eq? var (car variables)) #t)
       (else (declared? var (cdr variables))))))
 
-(define lookup
- (lambda (var state)
+; looks through all declared variables
+(define checkDeclaredVariables
+  (lambda (var state)
     (cond
       ((null? (declaredVariables state)) (error 'error "undeclared variable"))
       ((eq? var (firstVariable state)) (firstValue state))
-      (else (lookup var (cdr state))))))
+      (else (checkDeclaredVariables var (restof state))))))
 
+; insert newly declared variable's value
 (define insert
   (lambda (var val state)
     (cond
@@ -97,10 +124,13 @@
 ;; ***********************************************************
 ; Abstractions
 
+; looking for "var", "if", "while", "=", etc
 (define function car)
+
 (define expression caddr)
 (define returnExpression cadr)
 
+; Follows (- 1 2) format
 (define operator car)
 (define leftOperand cadr)
 (define rightOperand caddr)
@@ -117,3 +147,7 @@
 (define restof
   (lambda (state)
     (cons (cdar state) (cons (cdadr state) '()))))
+
+(define ifCondition cadr)
+(define statement1 caddr)
+(define statement2 cadddr)
