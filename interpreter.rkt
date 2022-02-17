@@ -123,7 +123,7 @@
     (cond
       ((null? (declaredVariables state)) (error 'error "undeclared variable"))
       ((eq? var (firstVariable state)) (firstValue state))
-      (else (checkDeclaredVariables var (check state))(print (check state))))))
+      (else (checkDeclaredVariables var (check state))))))
 
 ; insert newly declared variable's value
 (define insert
