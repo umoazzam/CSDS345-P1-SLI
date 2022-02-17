@@ -22,6 +22,8 @@
   (lambda (statement state)
     (cond
       ((number? statement) statement)
+      ((eq? 'true statement) #t)
+      ((eq? 'false statement) #f)
       ((not (list? statement)) (if (null? (checkDeclaredVariables statement state))
                               (error 'error "variable use before assigning")
                               (checkDeclaredVariables statement state)))
@@ -38,13 +40,16 @@
       ((eq? (operator statement) '<=) (<= (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       ((eq? (operator statement) '!=) (not (eq? (M_value (leftOperand statement) state) (M_value (rightOperand statement) state))))
       ((eq? (operator statement) '==) (eq? (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
+      ((eq? (operator statement) '||) (or (M_boolean (M_value (leftOperand statement) state) state) (M_boolean (M_value (rightOperand statement) state) state)))
+      ((eq? (operator statement) '&&) (and (M_boolean (M_value (leftOperand statement) state) state) (M_boolean (M_value (rightOperand statement) state) state)))
+      ((eq? (operator statement) '!) (not (M_boolean (M_value (leftOperand statement) state) state)))
       (else (error 'badop "Bad operator")))))
 
 (define M_boolean
   (lambda (condition state)
     (cond
-      ((eq? 'true condition) #t)
-      ((eq? 'false condition) #f)
+      ((or (eq? 'true condition) (eq? #t condition)) #t)
+      ((or (eq? 'false condition) (eq? #f condition)) #f)
       (else (M_value condition state)))))
 
 ;; ***********************************************************
@@ -60,11 +65,14 @@
        (cond
          ((eq? (length statement) 4)(M_state-ifElse (ifCondition statement)(statement1 statement) (statement2 statement) state))
          (else (M_state-if (ifCondition statement)(statement1 statement) state))))
+      ((eq? (function statement) 'while) (M_state-while (whileCondition statement) (whileStatement statement) state))
       (else (M_value statement state)))))
 
 (define M_state-return
   (lambda (statement state)
     (cond
+      ((eq? (M_value statement state) #t) 'true)
+      ((eq? (M_value statement state) #f) 'false)
       (else (M_value statement state)))))
 
 (define M_state-declaration
@@ -91,6 +99,12 @@
     (cond
       ((M_boolean condition state) (M_state ifStatement state))
       (else (M_state elseStatement state)))))
+
+(define M_state-while
+  (lambda (condition statement state)
+    (cond
+      ((M_boolean condition state) (M_state-while condition statement (M_state statement state)))
+      (else state))))
     
 
 ;; ***********************************************************
@@ -109,7 +123,7 @@
     (cond
       ((null? (declaredVariables state)) (error 'error "undeclared variable"))
       ((eq? var (firstVariable state)) (firstValue state))
-      (else (checkDeclaredVariables var (restof state))))))
+      (else (checkDeclaredVariables var (check state))(print (check state))))))
 
 ; insert newly declared variable's value
 (define insert
@@ -117,8 +131,8 @@
     (cond
       ((not (declared? var (declaredVariables state))) (error 'error "undeclared variable"))
       ((eq? var (firstVariable state)) (cons (declaredVariables state) (cons (cons val (remainingValues state)) '())))
-      (else (list (cons (firstVariable state) (declaredVariables (insert var val (restof state))))
-                  (cons (firstValue state) (declaredValues (insert var val (restof state)))))))))
+      (else (list (cons (firstVariable state) (declaredVariables (insert var val (check state))))
+                  (cons (firstValue state) (declaredValues (insert var val (check state)))))))))
 
 
 ;; ***********************************************************
@@ -144,10 +158,16 @@
 (define firstValue caadr)
 (define remainingValues cdadr)
 
-(define restof
+; check if variable is declared somewhere in state
+(define check
   (lambda (state)
     (cons (cdar state) (cons (cdadr state) '()))))
 
 (define ifCondition cadr)
 (define statement1 caddr)
 (define statement2 cadddr)
+
+(define whileCondition cadr)
+(define whileStatement caddr)
+
+
