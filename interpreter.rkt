@@ -8,7 +8,7 @@
 
 (define interpret
   (lambda (filename)
-    (evaluateParseTree (parser filename) '(() ()))))
+    (evaluateParseTree (parser filename) initialState)))
 
 (define evaluateParseTree
   (lambda (parseTree state)
@@ -137,6 +137,8 @@
 
 ;; ***********************************************************
 ; Abstractions
+
+(define initialState '(() ()))
 
 ; looking for "var", "if", "while", "=", etc
 (define function car)
