@@ -14,10 +14,10 @@
   (lambda (parseTree state)
     (cond
       ((null? parseTree) state)
-      (else(evaluateParseTree (cdr parseTree) (M_state (car parseTree) state))))))
+      (else(evaluateParseTree (rest parseTree) (M_state (first parseTree) state))))))
 
 ;; ***********************************************************
-; Basic types: int, boolean
+; Basic types: values, boolean
 (define M_value
   (lambda (statement state)
     (cond
@@ -25,11 +25,12 @@
       ((eq? 'true statement) #t)
       ((eq? 'false statement) #f)
       ((not (list? statement)) (if (null? (checkDeclaredVariables statement state))
-                              (error 'error "variable use before assigning")
+                              (error 'error "using variable before declaring")
                               (checkDeclaredVariables statement state)))
       ((eq? (operator statement) '+) (+ (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       ((eq? (operator statement) '-) (cond
-                                       ((null? (cddr statement)) (- 0 (M_value (leftOperand statement) state)))
+                                       ;; abstract ME!
+                                       ((null? (operand statement)) (- 0 (M_value (leftOperand statement) state)))
                                        (else(- (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))))
       ((eq? (operator statement) '*) (* (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
       ((eq? (operator statement) '/) (quotient (M_value (leftOperand statement) state) (M_value (rightOperand statement) state)))
@@ -78,15 +79,15 @@
 (define M_state-declaration
   (lambda (statement state)
     (cond
-      ((declared? (newVariable statement) (declaredVariables state)) (error 'error "variable is already defined"))
-      ((null? (cddr statement)) (list (cons (newVariable statement) (declaredVariables state)) (cons '() (declaredValues state))))
+      ((declared? (newVariable statement) (declaredVariables state)) (error 'error "redefining already defined variable"))
+      ((null? (value statement)) (list (cons (newVariable statement) (declaredVariables state)) (cons '() (declaredValues state))))
       (else (list(cons (newVariable statement) (declaredVariables state)) (cons (M_value (newValue statement) state) (declaredValues state)))))))
 
 (define M_state-assign
   (lambda (variable statement state)
     (cond
       ((declared? variable (declaredVariables state)) (insert variable (M_value statement state) (remove variable state)))
-      (else(error 'error "undeclared variable")))))
+      (else(error 'error "using before declaring")))))
 
 (define M_state-if
   (lambda (condition ifStatement state)
@@ -108,20 +109,19 @@
     
 
 ;; ***********************************************************
-
 ; checks if variable is already declared
 (define declared?
   (lambda (var variables)
     (cond
       ((null? variables) #f)
       ((eq? var (car variables)) #t)
-      (else (declared? var (cdr variables))))))
+      (else (declared? var (rest variables))))))
 
 ; looks through all declared variables
 (define checkDeclaredVariables
   (lambda (var state)
     (cond
-      ((null? (declaredVariables state)) (error 'error "undeclared variable"))
+      ((null? (declaredVariables state)) (error 'error "using before declaring"))
       ((eq? var (firstVariable state)) (firstValue state))
       (else (checkDeclaredVariables var (check state))))))
 
@@ -129,7 +129,7 @@
 (define insert
   (lambda (var val state)
     (cond
-      ((not (declared? var (declaredVariables state))) (error 'error "undeclared variable"))
+      ((not (declared? var (declaredVariables state))) (error 'error "using before declaring"))
       ((eq? var (firstVariable state)) (cons (declaredVariables state) (cons (cons val (remainingValues state)) '())))
       (else (list (cons (firstVariable state) (declaredVariables (insert var val (check state))))
                   (cons (firstValue state) (declaredValues (insert var val (check state)))))))))
@@ -139,6 +139,8 @@
 ; Abstractions
 
 (define initialState '(() ()))
+(define first car)
+(define rest cdr)
 
 ; looking for "var", "if", "while", "=", etc
 (define function car)
@@ -150,7 +152,13 @@
 (define operator car)
 (define leftOperand cadr)
 (define rightOperand caddr)
+; used for negative operations, such as (- (* 4 2)), meaning that there is no rightOperand, so we can't take (car (cdr (cdr)))
+(define operand cddr)
 
+; used for when variable is declared but not given value
+(define value cddr)
+
+; used when variable is declared with value
 (define newVariable cadr)
 (define newValue caddr)
 (define declaredVariables car)
